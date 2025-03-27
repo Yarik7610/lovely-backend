@@ -5,6 +5,8 @@ import { UsersModule } from "../users/users.module"
 import { AuthController } from "./auth.controller"
 import { AuthService } from "./auth.service"
 
+const { secret, expiresIn } = JWT_CONFIG
+
 @Module({
   controllers: [AuthController],
   providers: [AuthService],
@@ -12,8 +14,8 @@ import { AuthService } from "./auth.service"
     UsersModule,
     JwtModule.register({
       global: true,
-      secret: JWT_CONFIG.secret,
-      signOptions: JWT_CONFIG.signOptions
+      secret,
+      signOptions: { expiresIn }
     })
   ]
 })
