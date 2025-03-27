@@ -19,71 +19,62 @@ enum Action {
 }
 
 model User {
-  id               String     @id @default(uuid())
-  email            String     @unique
-  hashed_password  String?
-  oauth_provider   String?
-  oauth_id         String?
-  name             String?
-  age              Int?
-  gender           Gender?
-  city             String?
-  bio              String?
-  interests        Interest[] @relation("users_interests")
-  photo_urls       Json?
-  sent_swipes      Swipe[]    @relation("swiper")
-  received_swipes  Swipe[]    @relation("swiped")
-  matches_as_user1 Match[]    @relation("user1")
-  matches_as_user2 Match[]    @relation("user2")
-  sent_messages    Message[]  @relation("sender")
-  created_at       DateTime   @default(now())
-  updated_at       DateTime   @updatedAt
-
-  @@map("users")
+  id             String     @id @default(uuid())
+  email          String     @unique
+  hashedPassword String?
+  oauthProvider  String?
+  oauthId        String?
+  name           String?
+  age            Int?
+  gender         Gender?
+  city           String?
+  bio            String?
+  interests      Interest[] @relation("usersInterests")
+  photoUrls      Json?
+  sentSwipes     Swipe[]    @relation("swiper")
+  receivedSwipes Swipe[]    @relation("swiped")
+  matchesAsUser1 Match[]    @relation("user1")
+  matchesAsUser2 Match[]    @relation("user2")
+  sentMessages   Message[]  @relation("sender")
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 }
 
 model Interest {
-  id         String   @id @default(uuid())
-  name       String   @unique
-  users      User[]   @relation("users_interests")
-  created_at DateTime @default(now())
-
-  @@map("interests")
+  id        String   @id @default(uuid())
+  name      String   @unique
+  users     User[]   @relation("usersInterests")
+  createdAt DateTime @default(now())
 }
 
 model Swipe {
-  id         String   @id @default(uuid())
-  swiper_id  String
-  swiper     User     @relation("swiper", fields: [swiper_id], references: [id], onDelete: Cascade)
-  swiped_id  String
-  swiped     User     @relation("swiped", fields: [swiped_id], references: [id], onDelete: Cascade)
-  action     Action
-  created_at DateTime @default(now())
-
-  @@map("swipes")
+  id        String   @id @default(uuid())
+  swiperId  String
+  swiper    User     @relation("swiper", fields: [swiperId], references: [id], onDelete: Cascade)
+  swipedId  String
+  swiped    User     @relation("swiped", fields: [swipedId], references: [id], onDelete: Cascade)
+  action    Action
+  createdAt DateTime @default(now())
 }
 
 model Match {
-  id         String    @id @default(uuid())
-  user_1_id  String
-  user_1     User      @relation("user1", fields: [user_1_id], references: [id], onDelete: Cascade)
-  user_2_id  String
-  user_2     User      @relation("user2", fields: [user_2_id], references: [id], onDelete: Cascade)
-  messages   Message[]
-  created_at DateTime  @default(now())
+  id        String    @id @default(uuid())
+  user1Id   String
+  user1     User      @relation("user1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2Id   String
+  user2     User      @relation("user2", fields: [user2Id], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
 
-  @@unique([user_1_id, user_2_id])
-  @@map("matches")
+  @@unique([user1Id, user2Id])
 }
 
 model Message {
-  id         String   @id @default(uuid())
-  match_id   String
-  match      Match    @relation(fields: [match_id], references: [id], onDelete: Cascade)
-  sender_id  String
-  sender     User     @relation("sender", fields: [sender_id], references: [id], onDelete: Cascade)
-  content    String
-  created_at DateTime @default(now())
-
-  @@map("messages")
+  id        String   @id @default(uuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
 }
