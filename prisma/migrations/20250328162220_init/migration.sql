@@ -5,10 +5,20 @@ CREATE TYPE "Gender" AS ENUM ('male', 'female', 'other');
 CREATE TYPE "Action" AS ENUM ('dislike', 'like');
 
 -- CreateTable
+CREATE TABLE "RefreshToken" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "refreshToken" TEXT,
     "hashedPassword" TEXT,
     "oauthProvider" TEXT,
     "oauthId" TEXT,
@@ -74,6 +84,9 @@ CREATE TABLE "_usersInterests" (
 );
 
 -- CreateIndex
+CREATE UNIQUE INDEX "RefreshToken_userId_key" ON "RefreshToken"("userId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
@@ -84,6 +97,9 @@ CREATE UNIQUE INDEX "Match_user1Id_user2Id_key" ON "Match"("user1Id", "user2Id")
 
 -- CreateIndex
 CREATE INDEX "_usersInterests_B_index" ON "_usersInterests"("B");
+
+-- AddForeignKey
+ALTER TABLE "RefreshToken" ADD CONSTRAINT "RefreshToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Swipe" ADD CONSTRAINT "Swipe_swiperId_fkey" FOREIGN KEY ("swiperId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

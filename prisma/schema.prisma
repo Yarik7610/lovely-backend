@@ -18,10 +18,18 @@ enum Action {
   like
 }
 
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model User {
-  id             String     @id @default(uuid())
-  email          String     @unique
-  refreshToken   String?
+  id             String        @id @default(uuid())
+  email          String        @unique
   hashedPassword String?
   oauthProvider  String?
   oauthId        String?
@@ -30,15 +38,16 @@ model User {
   gender         Gender?
   city           String?
   bio            String?
-  interests      Interest[] @relation("usersInterests")
+  interests      Interest[]    @relation("usersInterests")
   photoUrls      Json?
-  sentSwipes     Swipe[]    @relation("swiper")
-  receivedSwipes Swipe[]    @relation("swiped")
-  matchesAsUser1 Match[]    @relation("user1")
-  matchesAsUser2 Match[]    @relation("user2")
-  sentMessages   Message[]  @relation("sender")
-  createdAt      DateTime   @default(now())
-  updatedAt      DateTime   @updatedAt
+  sentSwipes     Swipe[]       @relation("swiper")
+  receivedSwipes Swipe[]       @relation("swiped")
+  matchesAsUser1 Match[]       @relation("user1")
+  matchesAsUser2 Match[]       @relation("user2")
+  sentMessages   Message[]     @relation("sender")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  refreshToken   RefreshToken?
 }
 
 model Interest {

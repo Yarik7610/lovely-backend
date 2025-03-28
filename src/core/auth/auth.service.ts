@@ -1,14 +1,12 @@
 import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common"
-import { JwtService } from "@nestjs/jwt"
 import { User } from "@prisma/client"
 import * as bcrypt from "bcrypt"
 import type { Response } from "express"
 import { CreateUserDto } from "../users/dtos/create-user.dto"
 import { UsersService } from "../users/users.service"
-import { JWT_REFRESH_CONFIG } from "./configs/jwt-refresh.config"
-import { JWT_CONFIG } from "./configs/jwt.config"
 import { SignInDto } from "./dtos/sign-in.dto"
 import { SignUpDto } from "./dtos/sign-up.dto"
+import { TokensService } from "./tokens.service"
 
 export interface SignInResponse {
   accessToken: string
@@ -20,22 +18,8 @@ export type SignUpResponse = Omit<User, "hashedPassword" | "refreshToken">
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly jwtService: JwtService
+    private readonly tokensService: TokensService
   ) {}
-
-  private async saveRefreshToken(id: User["id"], refreshToken: User["refreshToken"], response: Response) {
-    this.setRefreshTokenInCookies(refreshToken, response)
-    await this.usersService.updateRefreshToken(id, refreshToken)
-  }
-
-  private setRefreshTokenInCookies(refreshToken: User["refreshToken"], response: Response) {
-    response.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: "strict",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: JWT_REFRESH_CONFIG.expiresInMs
-    })
-  }
 
   async signUp(signUpDto: SignUpDto): Promise<SignUpResponse> {
     const { email, password, passwordRepeat } = signUpDto
@@ -68,17 +52,12 @@ export class AuthService {
     if (!passwordsAreSame) throw new UnauthorizedException("Wrong email or password")
 
     const jwtPayload = { id }
-    const accessToken = await this.jwtService.signAsync(jwtPayload, JWT_CONFIG)
+    const accessToken = await this.tokensService.generateAccessToken(jwtPayload)
 
-    const refreshToken = await this.jwtService.signAsync(jwtPayload, {
-      secret: JWT_REFRESH_CONFIG.secret,
-      expiresIn: JWT_REFRESH_CONFIG.expiresIn
-    })
+    const refreshToken = await this.tokensService.generateRefreshToken(jwtPayload)
 
-    await this.saveRefreshToken(id, refreshToken, response)
+    await this.tokensService.storeRefreshToken(id, refreshToken, response)
 
     return { accessToken }
   }
-
-  // async refreshToken(refreshTokenDto: RefreshTokenDto) {}
 }
