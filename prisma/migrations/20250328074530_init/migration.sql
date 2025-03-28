@@ -8,6 +8,7 @@ CREATE TYPE "Action" AS ENUM ('dislike', 'like');
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "refreshToken" TEXT,
     "hashedPassword" TEXT,
     "oauthProvider" TEXT,
     "oauthId" TEXT,

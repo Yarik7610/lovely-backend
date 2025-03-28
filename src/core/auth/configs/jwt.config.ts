@@ -1,4 +1,4 @@
 export const JWT_CONFIG = {
   secret: process.env.JWT_SECRET,
-  expiresIn: "1h"
+  expiresIn: "15m"
 }

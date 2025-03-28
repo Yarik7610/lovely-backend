@@ -1,31 +1,54 @@
-import { Injectable } from "@nestjs/common"
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common"
 import { User } from "@prisma/client"
 import { DatabaseService } from "src/common/database/database.service"
-import { CreateUserDto } from "./dto/create-user.dto"
+import { CreateUserDto } from "./dtos/create-user.dto"
+
+export type CreateUserResponse = Omit<User, "hashedPassword" | "refreshToken">
+export type UpdateUserResponse = CreateUserResponse
 
 @Injectable()
 export class UsersService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  async getById(id: string): Promise<User | null> {
-    const user = await this.databaseService.user.findUnique({
+  //Non-controller method
+  async updateRefreshToken(id: User["id"], refreshToken: User["refreshToken"]) {
+    const existingUser = await this.getById(id)
+    if (!existingUser) throw new NotFoundException("User not found")
+
+    await this.databaseService.user.update({
+      where: { id },
+      data: { refreshToken },
+      omit: {
+        hashedPassword: true,
+        refreshToken: true
+      }
+    })
+  }
+
+  //Non-controller method
+  async getById(id: User["id"]): Promise<User | null> {
+    return await this.databaseService.user.findUnique({
       where: { id }
     })
-
-    return user
   }
 
-  async getByEmail(email: string): Promise<User | null> {
-    const user = await this.databaseService.user.findUnique({
+  //Non-controller method
+  async getByEmail(email: User["email"]): Promise<User | null> {
+    return await this.databaseService.user.findUnique({
       where: { email }
     })
-
-    return user
   }
 
-  async create(createUserDto: CreateUserDto): Promise<User> {
-    const createdUser = await this.databaseService.user.create({ data: createUserDto })
+  async create(createUserDto: CreateUserDto): Promise<CreateUserResponse> {
+    const existingUser = await this.getByEmail(createUserDto.email)
+    if (existingUser) throw new BadRequestException("User already exists")
 
-    return createdUser
+    return await this.databaseService.user.create({
+      data: createUserDto,
+      omit: {
+        hashedPassword: true,
+        refreshToken: true
+      }
+    })
   }
 }

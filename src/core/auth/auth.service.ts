@@ -2,14 +2,19 @@ import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/
 import { JwtService } from "@nestjs/jwt"
 import { User } from "@prisma/client"
 import * as bcrypt from "bcrypt"
-import { CreateUserDto } from "../users/dto/create-user.dto"
+import type { Response } from "express"
+import { CreateUserDto } from "../users/dtos/create-user.dto"
 import { UsersService } from "../users/users.service"
-import { SignInDto } from "./dto/sign-in.dto"
-import { SignUpDto } from "./dto/sign-up.dto"
+import { JWT_REFRESH_CONFIG } from "./configs/jwt-refresh.config"
+import { JWT_CONFIG } from "./configs/jwt.config"
+import { SignInDto } from "./dtos/sign-in.dto"
+import { SignUpDto } from "./dtos/sign-up.dto"
 
-export interface SignInResult {
+export interface SignInResponse {
   accessToken: string
 }
+
+export type SignUpResponse = Omit<User, "hashedPassword" | "refreshToken">
 
 @Injectable()
 export class AuthService {
@@ -18,7 +23,21 @@ export class AuthService {
     private readonly jwtService: JwtService
   ) {}
 
-  async signUp(signUpDto: SignUpDto): Promise<User> {
+  private async saveRefreshToken(id: User["id"], refreshToken: User["refreshToken"], response: Response) {
+    this.setRefreshTokenInCookies(refreshToken, response)
+    await this.usersService.updateRefreshToken(id, refreshToken)
+  }
+
+  private setRefreshTokenInCookies(refreshToken: User["refreshToken"], response: Response) {
+    response.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: JWT_REFRESH_CONFIG.expiresInMs
+    })
+  }
+
+  async signUp(signUpDto: SignUpDto): Promise<SignUpResponse> {
     const { email, password, passwordRepeat } = signUpDto
     if (password !== passwordRepeat) throw new BadRequestException("Repeated password and password don't match")
 
@@ -33,11 +52,10 @@ export class AuthService {
       hashedPassword
     }
 
-    const createdUser = await this.usersService.create(createUserDto)
-    return createdUser
+    return await this.usersService.create(createUserDto)
   }
 
-  async signIn(signInDto: SignInDto): Promise<SignInResult> {
+  async signIn(signInDto: SignInDto, response: Response): Promise<SignInResponse> {
     const { email, password } = signInDto
 
     const existingUser = await this.usersService.getByEmail(email)
@@ -50,8 +68,17 @@ export class AuthService {
     if (!passwordsAreSame) throw new UnauthorizedException("Wrong email or password")
 
     const jwtPayload = { id }
-    const accessToken = await this.jwtService.signAsync(jwtPayload)
+    const accessToken = await this.jwtService.signAsync(jwtPayload, JWT_CONFIG)
+
+    const refreshToken = await this.jwtService.signAsync(jwtPayload, {
+      secret: JWT_REFRESH_CONFIG.secret,
+      expiresIn: JWT_REFRESH_CONFIG.expiresIn
+    })
+
+    await this.saveRefreshToken(id, refreshToken, response)
 
     return { accessToken }
   }
+
+  // async refreshToken(refreshTokenDto: RefreshTokenDto) {}
 }
