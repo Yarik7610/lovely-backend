@@ -1,12 +1,17 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Res } from "@nestjs/common"
-import type { Response } from "express"
+import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common"
+import { RefreshToken } from "@prisma/client"
+import type { Request, Response } from "express"
 import { AuthService } from "./auth.service"
 import { SignInDto } from "./dtos/sign-in.dto"
 import { SignUpDto } from "./dtos/sign-up.dto"
+import { TokensService } from "./tokens.service"
 
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly tokensService: TokensService
+  ) {}
 
   @Post("sign-up")
   signUp(@Body() signUpDto: SignUpDto) {
@@ -19,8 +24,9 @@ export class AuthController {
     return this.authService.signIn(signInDto, response)
   }
 
-  // @Post("refresh-token")
-  // refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-  //   return this.authService.refreshToken(refreshTokenDto)
-  // }
+  @Post("refresh-token")
+  refreshToken(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
+    const oldRefreshToken = request.cookies["refreshToken"] as RefreshToken["token"] | undefined
+    return this.tokensService.refresh(oldRefreshToken, response)
+  }
 }

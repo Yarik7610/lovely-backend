@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common"
-import { User } from "@prisma/client"
 import * as bcrypt from "bcrypt"
 import type { Response } from "express"
 import { CreateUserDto } from "../users/dtos/create-user.dto"
@@ -8,12 +7,6 @@ import { SignInDto } from "./dtos/sign-in.dto"
 import { SignUpDto } from "./dtos/sign-up.dto"
 import { TokensService } from "./tokens.service"
 
-export interface SignInResponse {
-  accessToken: string
-}
-
-export type SignUpResponse = Omit<User, "hashedPassword" | "refreshToken">
-
 @Injectable()
 export class AuthService {
   constructor(
@@ -21,7 +14,7 @@ export class AuthService {
     private readonly tokensService: TokensService
   ) {}
 
-  async signUp(signUpDto: SignUpDto): Promise<SignUpResponse> {
+  async signUp(signUpDto: SignUpDto) {
     const { email, password, passwordRepeat } = signUpDto
     if (password !== passwordRepeat) throw new BadRequestException("Repeated password and password don't match")
 
@@ -39,7 +32,7 @@ export class AuthService {
     return await this.usersService.create(createUserDto)
   }
 
-  async signIn(signInDto: SignInDto, response: Response): Promise<SignInResponse> {
+  async signIn(signInDto: SignInDto, response: Response) {
     const { email, password } = signInDto
 
     const existingUser = await this.usersService.getByEmail(email)
@@ -51,11 +44,8 @@ export class AuthService {
     const passwordsAreSame = await bcrypt.compare(password, hashedPassword)
     if (!passwordsAreSame) throw new UnauthorizedException("Wrong email or password")
 
-    const jwtPayload = { id }
-    const accessToken = await this.tokensService.generateAccessToken(jwtPayload)
-
-    const refreshToken = await this.tokensService.generateRefreshToken(jwtPayload)
-
+    const accessToken = await this.tokensService.generateAccessToken({ id })
+    const refreshToken = await this.tokensService.generateRefreshToken({ id })
     await this.tokensService.storeRefreshToken(id, refreshToken, response)
 
     return { accessToken }
