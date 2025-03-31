@@ -18,7 +18,7 @@ export class AuthService {
     const { email, password, passwordRepeat } = signUpDto
     if (password !== passwordRepeat) throw new BadRequestException("Repeated password and password don't match")
 
-    const possibleUser = await this.usersService.getByEmail(email)
+    const possibleUser = await this.usersService.getUserByEmail(email)
     if (possibleUser) throw new BadRequestException("This email is already taken. Try another one")
 
     const salt = 6
@@ -29,13 +29,13 @@ export class AuthService {
       hashedPassword
     }
 
-    return await this.usersService.create(createUserDto)
+    return await this.usersService.createUser(createUserDto)
   }
 
   async signIn(signInDto: SignInDto, response: Response) {
     const { email, password } = signInDto
 
-    const existingUser = await this.usersService.getByEmail(email)
+    const existingUser = await this.usersService.getUserByEmail(email)
     if (!existingUser) throw new UnauthorizedException("Wrong email or password")
 
     const { hashedPassword, id } = existingUser

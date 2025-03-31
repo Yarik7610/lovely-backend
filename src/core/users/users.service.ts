@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common"
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common"
 import { User } from "@prisma/client"
 import { DatabaseService } from "src/common/database/database.service"
 import { CreateUserDto } from "./dtos/create-user.dto"
@@ -7,22 +7,20 @@ import { CreateUserDto } from "./dtos/create-user.dto"
 export class UsersService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  //Non-controller method
-  async getById(id: User["id"]) {
+  async getUserById(id: User["id"]) {
     return await this.databaseService.user.findUnique({
       where: { id }
     })
   }
 
-  //Non-controller method
-  async getByEmail(email: User["email"]) {
+  async getUserByEmail(email: User["email"]) {
     return await this.databaseService.user.findUnique({
       where: { email }
     })
   }
 
-  async create(createUserDto: CreateUserDto) {
-    const existingUser = await this.getByEmail(createUserDto.email)
+  async createUser(createUserDto: CreateUserDto) {
+    const existingUser = await this.getUserByEmail(createUserDto.email)
     if (existingUser) throw new BadRequestException("User already exists")
 
     return await this.databaseService.user.create({
@@ -31,5 +29,24 @@ export class UsersService {
         hashedPassword: true
       }
     })
+  }
+
+  async getUserProfile(id: User["id"]) {
+    const existingUser = await this.databaseService.user.findUnique({
+      where: { id },
+      select: {
+        name: true,
+        age: true,
+        gender: true,
+        city: true,
+        bio: true,
+        interests: true,
+        photoUrls: true
+      }
+    })
+
+    if (!existingUser) throw new NotFoundException("User's profile wasn't found")
+
+    return existingUser
   }
 }
