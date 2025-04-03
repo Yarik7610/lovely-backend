@@ -5,15 +5,18 @@ import type { Response } from "express"
 import { CreateUserDto } from "../users/dtos/create-user.dto"
 import { UsersService } from "../users/users.service"
 import { ChangePasswordDto } from "./dtos/chage-password.dto"
+import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
 import { SignInDto } from "./dtos/sign-in.dto"
 import { SignUpDto } from "./dtos/sign-up.dto"
+import { EmailService } from "./email.service"
 import { TokensService } from "./tokens.service"
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
-    private readonly tokensService: TokensService
+    private readonly tokensService: TokensService,
+    private readonly emailService: EmailService
   ) {}
 
   async signUp(signUpDto: SignUpDto) {
@@ -74,5 +77,17 @@ export class AuthService {
     const newHashedPassword = await bcrypt.hash(newPassword, salt)
 
     await this.usersService.updateUserPassword(id, newHashedPassword)
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const { email } = forgotPasswordDto
+
+    const existingUser = await this.usersService.getUserByEmail(email)
+    if (!existingUser) throw new BadRequestException("User with such email doesn't exist")
+
+    const passwordResetToken = await this.tokensService.generatePasswordResetToken({ email: existingUser.email })
+    await this.tokensService.storeResetPasswordToken(email, passwordResetToken)
+
+    await this.emailService.sendResetPasswordLink(email, passwordResetToken)
   }
 }

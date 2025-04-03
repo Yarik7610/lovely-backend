@@ -1,11 +1,11 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
-import { RefreshToken, User } from "@prisma/client"
+import { PasswordResetToken, RefreshToken, User } from "@prisma/client"
 import type { Response } from "express"
 import { DatabaseService } from "src/common/database/database.service"
 import { JWT_REFRESH_CONFIG } from "./configs/jwt-refresh.config"
 import { JWT_CONFIG } from "./configs/jwt.config"
-import { JwtPayload } from "./types/jwt-payload"
+import { JwtResetPasswordPayload, JwtUserPayload } from "./types/jwt-payloads"
 
 @Injectable()
 export class TokensService {
@@ -14,7 +14,7 @@ export class TokensService {
     private readonly databaseService: DatabaseService
   ) {}
 
-  private setRefreshTokenInCookies(refreshToken: string, response: Response) {
+  private setRefreshTokenInCookies(refreshToken: RefreshToken["token"], response: Response) {
     response.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       sameSite: "strict",
@@ -33,7 +33,7 @@ export class TokensService {
     })
   }
 
-  private async updateRefreshToken(userId: User["id"], refreshToken: string) {
+  private async updateRefreshToken(userId: User["id"], refreshToken: RefreshToken["token"]) {
     await this.databaseService.refreshToken.upsert({
       where: { userId },
       update: {
@@ -46,17 +46,38 @@ export class TokensService {
     })
   }
 
-  async generateAccessToken(jwtPayload: JwtPayload) {
-    return await this.jwtService.signAsync(jwtPayload, JWT_CONFIG)
+  private async updateResetPasswordToken(email: User["email"], resetPasswordToken: PasswordResetToken["token"]) {
+    await this.databaseService.passwordResetToken.upsert({
+      where: { email },
+      update: {
+        token: resetPasswordToken
+      },
+      create: {
+        email,
+        token: resetPasswordToken
+      }
+    })
   }
 
-  async generateRefreshToken(jwtPayload: JwtPayload) {
+  async generateAccessToken(jwtUserPayload: JwtUserPayload) {
+    return await this.jwtService.signAsync(jwtUserPayload, JWT_CONFIG)
+  }
+
+  async generateRefreshToken(jwtUserPayload: JwtUserPayload) {
     const { secret, expiresIn } = JWT_REFRESH_CONFIG
 
-    return await this.jwtService.signAsync(jwtPayload, {
+    return await this.jwtService.signAsync(jwtUserPayload, {
       secret,
       expiresIn
     })
+  }
+
+  async generatePasswordResetToken(jwtResetPasswordPayload: JwtResetPasswordPayload) {
+    return await this.jwtService.signAsync(jwtResetPasswordPayload, JWT_CONFIG)
+  }
+
+  async storeResetPasswordToken(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
+    await this.updateResetPasswordToken(email, passwordResetToken)
   }
 
   async storeRefreshToken(id: User["id"], refreshToken: string, response: Response) {
@@ -64,12 +85,12 @@ export class TokensService {
     await this.updateRefreshToken(id, refreshToken)
   }
 
-  async refresh(oldRefreshToken: RefreshToken["token"] | undefined, response: Response) {
+  async refreshOldRefreshToken(oldRefreshToken: RefreshToken["token"] | undefined, response: Response) {
     if (!oldRefreshToken) throw new UnauthorizedException("Refresh token wasn't provided")
 
-    let jwtPayload: JwtPayload
+    let jwtUserPayload: JwtUserPayload
     try {
-      jwtPayload = await this.jwtService.verifyAsync(oldRefreshToken, {
+      jwtUserPayload = await this.jwtService.verifyAsync(oldRefreshToken, {
         secret: JWT_REFRESH_CONFIG.secret
       })
     } catch {
@@ -77,7 +98,7 @@ export class TokensService {
       throw new UnauthorizedException("Refresh token is invalid or has expired")
     }
 
-    const { id } = jwtPayload
+    const { id } = jwtUserPayload
 
     const dbRefreshToken = await this.databaseService.refreshToken.findUnique({
       where: { userId: id }

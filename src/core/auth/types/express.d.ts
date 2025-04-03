@@ -1,7 +1,7 @@
-import { JwtPayload } from "./jwt-payload"
+import { JwtUserPayload } from "./jwt-payloads"
 
 declare module "express" {
   interface Request {
-    user: JwtPayload
+    user: JwtUserPayload
   }
 }

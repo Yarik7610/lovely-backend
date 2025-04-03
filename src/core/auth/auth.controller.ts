@@ -5,10 +5,11 @@ import { Public } from "src/common/decorators/public.decorator"
 import { User } from "src/common/decorators/user.decorator"
 import { AuthService } from "./auth.service"
 import { ChangePasswordDto } from "./dtos/chage-password.dto"
+import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
 import { SignInDto } from "./dtos/sign-in.dto"
 import { SignUpDto } from "./dtos/sign-up.dto"
 import { TokensService } from "./tokens.service"
-import { JwtPayload } from "./types/jwt-payload"
+import { JwtUserPayload } from "./types/jwt-payloads"
 
 @Controller("auth")
 export class AuthController {
@@ -34,14 +35,21 @@ export class AuthController {
   @Public()
   refreshToken(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const oldRefreshToken = request.cookies["refreshToken"] as RefreshToken["token"] | undefined
-    return this.tokensService.refresh(oldRefreshToken, response)
+    return this.tokensService.refreshOldRefreshToken(oldRefreshToken, response)
   }
 
   @Post("change-password")
   @HttpCode(HttpStatus.OK)
-  changePassword(@Body() changePasswordDto: ChangePasswordDto, @User() user: JwtPayload) {
+  changePassword(@Body() changePasswordDto: ChangePasswordDto, @User() user: JwtUserPayload) {
     const { id } = user
 
     return this.authService.changePassword(id, changePasswordDto)
+  }
+
+  @Post("forgot-password")
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto)
   }
 }
