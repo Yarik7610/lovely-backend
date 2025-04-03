@@ -5,10 +5,7 @@ import type { Response } from "express"
 import { DatabaseService } from "src/common/database/database.service"
 import { JWT_REFRESH_CONFIG } from "./configs/jwt-refresh.config"
 import { JWT_CONFIG } from "./configs/jwt.config"
-
-export type JwtPayload = {
-  id: string
-}
+import { JwtPayload } from "./types/jwt-payload"
 
 @Injectable()
 export class TokensService {

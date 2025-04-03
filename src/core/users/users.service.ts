@@ -31,6 +31,15 @@ export class UsersService {
     })
   }
 
+  async updateUserPassword(id: User["id"], newHashedPassword: User["hashedPassword"]) {
+    await this.databaseService.user.update({
+      where: { id },
+      data: {
+        hashedPassword: newHashedPassword
+      }
+    })
+  }
+
   async getUserProfile(id: User["id"]) {
     const existingUser = await this.databaseService.user.findUnique({
       where: { id },

@@ -1,8 +1,10 @@
-import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common"
+import { BadRequestException, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common"
+import { User } from "@prisma/client"
 import * as bcrypt from "bcrypt"
 import type { Response } from "express"
 import { CreateUserDto } from "../users/dtos/create-user.dto"
 import { UsersService } from "../users/users.service"
+import { ChangePasswordDto } from "./dtos/chage-password.dto"
 import { SignInDto } from "./dtos/sign-in.dto"
 import { SignUpDto } from "./dtos/sign-up.dto"
 import { TokensService } from "./tokens.service"
@@ -49,5 +51,28 @@ export class AuthService {
     await this.tokensService.storeRefreshToken(id, refreshToken, response)
 
     return { accessToken }
+  }
+
+  async changePassword(userId: User["id"], changePasswordDto: ChangePasswordDto) {
+    const { oldPassword, newPassword, newPasswordRepeat } = changePasswordDto
+
+    const user = await this.usersService.getUserById(userId)
+    if (!user) throw new NotFoundException("User wasn't found")
+
+    const { id, hashedPassword, oauthId } = user
+
+    if (!hashedPassword || oauthId)
+      throw new BadRequestException("Can't change password because account wasn't registered with email")
+
+    if (newPassword !== newPasswordRepeat)
+      throw new BadRequestException("Repeated new password and new password don't match")
+
+    const oldPasswordsMatch = await bcrypt.compare(oldPassword, hashedPassword)
+    if (!oldPasswordsMatch) throw new BadRequestException("Wrong old password")
+
+    const salt = 6
+    const newHashedPassword = await bcrypt.hash(newPassword, salt)
+
+    await this.usersService.updateUserPassword(id, newHashedPassword)
   }
 }
