@@ -2,6 +2,6 @@ export type JwtUserPayload = {
   id: string
 }
 
-export type JwtResetPasswordPayload = {
+export type JwtPasswordResetPayload = {
   email: string
 }

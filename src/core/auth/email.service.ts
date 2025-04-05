@@ -6,7 +6,7 @@ import { PasswordResetToken, User } from "@prisma/client"
 export class EmailService {
   constructor(private readonly mailerService: MailerService) {}
 
-  async sendResetPasswordLink(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
+  async sendPasswordResetLink(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
     const resetPasswordRoute = "reset-password"
     const resetLink = `${process.env.FRONTEND_APP_URL}/${resetPasswordRoute}?token=${passwordResetToken}`
 

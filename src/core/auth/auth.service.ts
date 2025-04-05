@@ -4,8 +4,10 @@ import * as bcrypt from "bcrypt"
 import type { Response } from "express"
 import { CreateUserDto } from "../users/dtos/create-user.dto"
 import { UsersService } from "../users/users.service"
+import { BCRYPT_CONFIG } from "./configs/bcrypt.config"
 import { ChangePasswordDto } from "./dtos/chage-password.dto"
 import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
+import { ResetPasswordDto } from "./dtos/reset-password.dto"
 import { SignInDto } from "./dtos/sign-in.dto"
 import { SignUpDto } from "./dtos/sign-up.dto"
 import { EmailService } from "./email.service"
@@ -26,8 +28,7 @@ export class AuthService {
     const possibleUser = await this.usersService.getUserByEmail(email)
     if (possibleUser) throw new BadRequestException("This email is already taken. Try another one")
 
-    const salt = 6
-    const hashedPassword = await bcrypt.hash(password, salt)
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_CONFIG.salt)
 
     const createUserDto: CreateUserDto = {
       email,
@@ -65,7 +66,7 @@ export class AuthService {
     const { id, hashedPassword, oauthId } = user
 
     if (!hashedPassword || oauthId)
-      throw new BadRequestException("Can't change password because account wasn't registered with email")
+      throw new BadRequestException("Can't change password because account wasn't registered with email provider")
 
     if (newPassword !== newPasswordRepeat)
       throw new BadRequestException("Repeated new password and new password don't match")
@@ -73,21 +74,42 @@ export class AuthService {
     const oldPasswordsMatch = await bcrypt.compare(oldPassword, hashedPassword)
     if (!oldPasswordsMatch) throw new BadRequestException("Wrong old password")
 
-    const salt = 6
-    const newHashedPassword = await bcrypt.hash(newPassword, salt)
-
+    const newHashedPassword = await bcrypt.hash(newPassword, BCRYPT_CONFIG.salt)
     await this.usersService.updateUserPassword(id, newHashedPassword)
   }
 
   async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
     const { email } = forgotPasswordDto
 
-    const existingUser = await this.usersService.getUserByEmail(email)
-    if (!existingUser) throw new BadRequestException("User with such email doesn't exist")
+    const user = await this.usersService.getUserByEmail(email)
+    if (!user) throw new BadRequestException("User with such email doesn't exist")
 
-    const passwordResetToken = await this.tokensService.generatePasswordResetToken({ email: existingUser.email })
-    await this.tokensService.storeResetPasswordToken(email, passwordResetToken)
+    if (!user.hashedPassword || user.oauthId)
+      throw new BadRequestException("Can't change password because account wasn't registered with email provider")
 
-    await this.emailService.sendResetPasswordLink(email, passwordResetToken)
+    const passwordResetToken = await this.tokensService.generatePasswordResetToken({ email: user.email })
+    await this.tokensService.storePasswordResetToken(user.email, passwordResetToken)
+
+    await this.emailService.sendPasswordResetLink(user.email, passwordResetToken)
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { passwordResetToken, newPassword, newPasswordRepeat } = resetPasswordDto
+
+    if (newPassword !== newPasswordRepeat)
+      throw new BadRequestException("New password and new password repeat don't match")
+
+    const { email } = await this.tokensService.verifyPasswordResetToken(passwordResetToken)
+
+    const user = await this.usersService.getUserByEmail(email)
+    if (!user) throw new NotFoundException("User wasn't found")
+
+    const { id, hashedPassword, oauthId } = user
+
+    if (!hashedPassword || oauthId)
+      throw new BadRequestException("Can't reset password because account wasn't registered with email provider")
+
+    const newHashedPassword = await bcrypt.hash(newPassword, BCRYPT_CONFIG.salt)
+    await this.usersService.updateUserPassword(id, newHashedPassword)
   }
 }

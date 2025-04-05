@@ -1,11 +1,11 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common"
+import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
 import { PasswordResetToken, RefreshToken, User } from "@prisma/client"
 import type { Response } from "express"
 import { DatabaseService } from "src/common/database/database.service"
 import { JWT_REFRESH_CONFIG } from "./configs/jwt-refresh.config"
 import { JWT_CONFIG } from "./configs/jwt.config"
-import { JwtResetPasswordPayload, JwtUserPayload } from "./types/jwt-payloads"
+import { JwtPasswordResetPayload, JwtUserPayload } from "./types/jwt-payloads"
 
 @Injectable()
 export class TokensService {
@@ -46,15 +46,31 @@ export class TokensService {
     })
   }
 
-  private async updateResetPasswordToken(email: User["email"], resetPasswordToken: PasswordResetToken["token"]) {
+  private async updatePasswordResetToken(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
     await this.databaseService.passwordResetToken.upsert({
       where: { email },
       update: {
-        token: resetPasswordToken
+        token: passwordResetToken
       },
       create: {
         email,
-        token: resetPasswordToken
+        token: passwordResetToken
+      }
+    })
+  }
+
+  private async getPasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
+    return await this.databaseService.passwordResetToken.findUnique({
+      where: {
+        token: passwordResetToken
+      }
+    })
+  }
+
+  private async removePasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
+    return await this.databaseService.passwordResetToken.delete({
+      where: {
+        token: passwordResetToken
       }
     })
   }
@@ -72,17 +88,17 @@ export class TokensService {
     })
   }
 
-  async generatePasswordResetToken(jwtResetPasswordPayload: JwtResetPasswordPayload) {
+  async generatePasswordResetToken(jwtResetPasswordPayload: JwtPasswordResetPayload) {
     return await this.jwtService.signAsync(jwtResetPasswordPayload, JWT_CONFIG)
-  }
-
-  async storeResetPasswordToken(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
-    await this.updateResetPasswordToken(email, passwordResetToken)
   }
 
   async storeRefreshToken(id: User["id"], refreshToken: string, response: Response) {
     this.setRefreshTokenInCookies(refreshToken, response)
     await this.updateRefreshToken(id, refreshToken)
+  }
+
+  async storePasswordResetToken(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
+    await this.updatePasswordResetToken(email, passwordResetToken)
   }
 
   async refreshOldRefreshToken(oldRefreshToken: RefreshToken["token"] | undefined, response: Response) {
@@ -114,5 +130,24 @@ export class TokensService {
     await this.storeRefreshToken(id, refreshToken, response)
 
     return { accessToken }
+  }
+
+  async verifyPasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
+    const existingPasswordResetToken = await this.getPasswordResetToken(passwordResetToken)
+    if (!existingPasswordResetToken) throw new BadRequestException("Didn't find such password reset token")
+
+    let passwordResetPayload: JwtPasswordResetPayload
+    try {
+      passwordResetPayload = await this.jwtService.verifyAsync(passwordResetToken, {
+        secret: JWT_CONFIG.secret
+      })
+      return passwordResetPayload
+    } catch {
+      throw new BadRequestException(
+        "Password reset token is invalid or has expired. Request new password one more time"
+      )
+    } finally {
+      this.removePasswordResetToken(passwordResetToken)
+    }
   }
 }
