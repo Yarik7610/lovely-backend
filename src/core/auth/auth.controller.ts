@@ -60,4 +60,12 @@ export class AuthController {
   resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto)
   }
+
+  @Post("sign-out")
+  @HttpCode(HttpStatus.OK)
+  signOut(@User() user: JwtUserPayload, @Res({ passthrough: true }) response: Response) {
+    const { id } = user
+
+    return this.authService.signOut(id, response)
+  }
 }

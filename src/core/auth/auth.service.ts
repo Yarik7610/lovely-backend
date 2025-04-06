@@ -57,6 +57,18 @@ export class AuthService {
     return { accessToken }
   }
 
+  async signOut(id: User["id"], response: Response) {
+    const existingUser = await this.usersService.getUserById(id)
+    if (!existingUser) throw new NotFoundException("User wasn't found")
+
+    const { oauthId, hashedPassword } = existingUser
+
+    if (hashedPassword && !oauthId) await this.tokensService.removeRefreshToken(id, response)
+    else {
+      //TODO: oauth signout
+    }
+  }
+
   async changePassword(userId: User["id"], changePasswordDto: ChangePasswordDto) {
     const { oldPassword, newPassword, newPasswordRepeat } = changePasswordDto
 

@@ -33,6 +33,12 @@ export class TokensService {
     })
   }
 
+  private async deleteRefreshToken(userId: User["id"]) {
+    await this.databaseService.refreshToken.delete({
+      where: { userId }
+    })
+  }
+
   private async updateRefreshToken(userId: User["id"], refreshToken: RefreshToken["token"]) {
     await this.databaseService.refreshToken.upsert({
       where: { userId },
@@ -67,7 +73,7 @@ export class TokensService {
     })
   }
 
-  private async removePasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
+  private async deletePasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
     return await this.databaseService.passwordResetToken.delete({
       where: {
         token: passwordResetToken
@@ -95,6 +101,11 @@ export class TokensService {
   async storeRefreshToken(id: User["id"], refreshToken: string, response: Response) {
     this.setRefreshTokenInCookies(refreshToken, response)
     await this.updateRefreshToken(id, refreshToken)
+  }
+
+  async removeRefreshToken(id: User["id"], response: Response) {
+    this.deleteRefreshTokenFromCookies(response)
+    await this.deleteRefreshToken(id)
   }
 
   async storePasswordResetToken(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
@@ -147,7 +158,7 @@ export class TokensService {
         "Password reset token is invalid or has expired. Request new password one more time"
       )
     } finally {
-      this.removePasswordResetToken(passwordResetToken)
+      this.deletePasswordResetToken(passwordResetToken)
     }
   }
 }
