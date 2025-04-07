@@ -6,6 +6,7 @@ import { CreateUserDto } from "../users/dtos/create-user.dto"
 import { UsersService } from "../users/users.service"
 import { BCRYPT_CONFIG } from "./configs/bcrypt.config"
 import { ChangePasswordDto } from "./dtos/chage-password.dto"
+import { ChangeEmailDto } from "./dtos/change-email.dto"
 import { EmailVerificateDto } from "./dtos/email-verificate.dto"
 import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
 import { ResetPasswordDto } from "./dtos/reset-password.dto"
@@ -26,8 +27,8 @@ export class AuthService {
     const { email, password, passwordRepeat } = signUpDto
     if (password !== passwordRepeat) throw new BadRequestException("Repeated password and password don't match")
 
-    const possibleUser = await this.usersService.getUserByEmail(email)
-    if (possibleUser) throw new BadRequestException("This email is already taken. Try another one")
+    const user = await this.usersService.getUserByEmail(email)
+    if (user) throw new BadRequestException("This email is already taken. Try another one")
 
     const hashedPassword = await bcrypt.hash(password, BCRYPT_CONFIG.salt)
 
@@ -42,10 +43,10 @@ export class AuthService {
   async signIn(signInDto: SignInDto, response: Response) {
     const { email, password } = signInDto
 
-    const existingUser = await this.usersService.getUserByEmail(email)
-    if (!existingUser) throw new BadRequestException("Wrong email or password")
+    const user = await this.usersService.getUserByEmail(email)
+    if (!user) throw new BadRequestException("Wrong email or password")
 
-    const { hashedPassword, id } = existingUser
+    const { hashedPassword, id } = user
     if (!hashedPassword) throw new BadRequestException("This email wasn't registered via email")
 
     const passwordsAreSame = await bcrypt.compare(password, hashedPassword)
@@ -55,7 +56,7 @@ export class AuthService {
     const refreshToken = await this.tokensService.generateRefreshToken({ id })
     await this.tokensService.storeRefreshToken(id, refreshToken, response)
 
-    if (!existingUser.emailVerified) {
+    if (!user.emailVerified) {
       const emailVerificateToken = await this.tokensService.generateEmailVerificateToken({ email })
       await this.tokensService.storeEmailVerificateToken(email, emailVerificateToken)
       await this.emailService.sendEmailVerificateLink(email, emailVerificateToken)
@@ -65,10 +66,10 @@ export class AuthService {
   }
 
   async signOut(id: User["id"], response: Response) {
-    const existingUser = await this.usersService.getUserById(id)
-    if (!existingUser) throw new NotFoundException("User wasn't found")
+    const user = await this.usersService.getUserById(id)
+    if (!user) throw new NotFoundException("User wasn't found")
 
-    const { oauthId, hashedPassword } = existingUser
+    const { oauthId, hashedPassword } = user
 
     if (hashedPassword && !oauthId) await this.tokensService.removeRefreshToken(id, response)
     else {
@@ -90,6 +91,38 @@ export class AuthService {
       throw new BadRequestException("Can't verificate email because account wasn't registered with email provider")
 
     await this.usersService.verificateUserEmail(id)
+  }
+
+  async changeEmail(userId: User["id"], changeEmailDto: ChangeEmailDto) {
+    const { newEmail } = changeEmailDto
+
+    const user = await this.usersService.getUserById(userId)
+    if (!user) throw new NotFoundException("User wasn't found")
+
+    const { email, hashedPassword, oauthId, emailVerified } = user
+
+    if (!hashedPassword || oauthId)
+      throw new BadRequestException("Can't change email because account wasn't registered with email provider")
+
+    if (email === newEmail) throw new BadRequestException("Can't change same old and new email")
+
+    if (!emailVerified) {
+      const emailVerificateToken = await this.tokensService.generateEmailVerificateToken({ email })
+      await this.tokensService.storeEmailVerificateToken(email, emailVerificateToken)
+      await this.emailService.sendEmailVerificateLink(email, emailVerificateToken)
+      throw new BadRequestException("Verify your current email first. Verification link was sent on it")
+    }
+
+    const newEmailUser = await this.usersService.getUserByEmail(newEmail)
+    if (newEmailUser) throw new BadRequestException("This email is already taken. Choose another one")
+
+    const newEmailVerificateToken = await this.tokensService.generateEmailVerificateToken({ email: newEmail })
+    await this.tokensService.storeEmailVerificateToken(newEmail, newEmailVerificateToken)
+    await this.emailService.sendEmailVerificateLink(newEmail, newEmailVerificateToken)
+
+    await this.usersService.updateUserEmail(userId, newEmail)
+
+    return { message: "Email changed successfully. New verificate link was sent on the new email" }
   }
 
   async changePassword(userId: User["id"], changePasswordDto: ChangePasswordDto) {

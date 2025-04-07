@@ -40,6 +40,16 @@ export class UsersService {
     })
   }
 
+  async updateUserEmail(id: User["id"], newEmail: User["email"]) {
+    await this.databaseService.user.update({
+      where: { id },
+      data: {
+        email: newEmail,
+        emailVerified: false
+      }
+    })
+  }
+
   async verificateUserEmail(id: User["id"]) {
     await this.databaseService.user.update({
       where: { id },

@@ -5,6 +5,7 @@ import { Public } from "src/common/decorators/public.decorator"
 import { User } from "src/common/decorators/user.decorator"
 import { AuthService } from "./auth.service"
 import { ChangePasswordDto } from "./dtos/chage-password.dto"
+import { ChangeEmailDto } from "./dtos/change-email.dto"
 import { EmailVerificateDto } from "./dtos/email-verificate.dto"
 import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
 import { ResetPasswordDto } from "./dtos/reset-password.dto"
@@ -45,6 +46,14 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   verificateEmail(@Body() emailVerificateDto: EmailVerificateDto) {
     return this.authService.verificateEmail(emailVerificateDto)
+  }
+
+  @Post("change-email")
+  @HttpCode(HttpStatus.OK)
+  changeEmail(@Body() changeEmailDto: ChangeEmailDto, @User() user: JwtUserPayload) {
+    const { id } = user
+
+    return this.authService.changeEmail(id, changeEmailDto)
   }
 
   @Post("change-password")
