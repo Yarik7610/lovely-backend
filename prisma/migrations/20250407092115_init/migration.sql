@@ -5,6 +5,17 @@ CREATE TYPE "Gender" AS ENUM ('male', 'female', 'other');
 CREATE TYPE "Action" AS ENUM ('dislike', 'like');
 
 -- CreateTable
+CREATE TABLE "EmailVerificateToken" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "EmailVerificateToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "PasswordResetToken" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
@@ -30,6 +41,7 @@ CREATE TABLE "RefreshToken" (
 CREATE TABLE "User" (
     "id" TEXT NOT NULL,
     "email" TEXT NOT NULL,
+    "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "hashedPassword" TEXT,
     "oauthProvider" TEXT,
     "oauthId" TEXT,
@@ -93,6 +105,15 @@ CREATE TABLE "_usersInterests" (
 
     CONSTRAINT "_usersInterests_AB_pkey" PRIMARY KEY ("A","B")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmailVerificateToken_email_key" ON "EmailVerificateToken"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmailVerificateToken_token_key" ON "EmailVerificateToken"("token");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EmailVerificateToken_email_token_key" ON "EmailVerificateToken"("email", "token");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "PasswordResetToken_email_key" ON "PasswordResetToken"("email");

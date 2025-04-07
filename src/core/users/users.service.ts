@@ -40,6 +40,15 @@ export class UsersService {
     })
   }
 
+  async verificateUserEmail(id: User["id"]) {
+    await this.databaseService.user.update({
+      where: { id },
+      data: {
+        emailVerified: true
+      }
+    })
+  }
+
   async getUserProfile(id: User["id"]) {
     const existingUser = await this.databaseService.user.findUnique({
       where: { id },

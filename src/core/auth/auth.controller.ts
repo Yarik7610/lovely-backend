@@ -5,6 +5,7 @@ import { Public } from "src/common/decorators/public.decorator"
 import { User } from "src/common/decorators/user.decorator"
 import { AuthService } from "./auth.service"
 import { ChangePasswordDto } from "./dtos/chage-password.dto"
+import { EmailVerificateDto } from "./dtos/email-verificate.dto"
 import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
 import { ResetPasswordDto } from "./dtos/reset-password.dto"
 import { SignInDto } from "./dtos/sign-in.dto"
@@ -37,6 +38,13 @@ export class AuthController {
   refreshToken(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
     const oldRefreshToken = request.cookies["refreshToken"] as RefreshToken["token"] | undefined
     return this.tokensService.refreshOldRefreshToken(oldRefreshToken, response)
+  }
+
+  @Post("verificate-email")
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  verificateEmail(@Body() emailVerificateDto: EmailVerificateDto) {
+    return this.authService.verificateEmail(emailVerificateDto)
   }
 
   @Post("change-password")

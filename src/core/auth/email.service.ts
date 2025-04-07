@@ -1,6 +1,6 @@
 import { MailerService } from "@nestjs-modules/mailer"
 import { Injectable } from "@nestjs/common"
-import { PasswordResetToken, User } from "@prisma/client"
+import { EmailVerificateToken, PasswordResetToken, User } from "@prisma/client"
 
 @Injectable()
 export class EmailService {
@@ -10,12 +10,26 @@ export class EmailService {
     const resetPasswordRoute = "reset-password"
     const resetLink = `${process.env.FRONTEND_APP_URL}/${resetPasswordRoute}?token=${passwordResetToken}`
 
-    const html = `<h2>Forgot your password? If you didn't forget your password, please ignore this email!</h2><p>Click the link to reset your password: <a href="${resetLink}">Reset password</a></p>`
+    const html = `<h2>Forgot your password? If you didn't forget your password, please ignore this message!</h2><p>Click the link to reset your password: <a href="${resetLink}">Reset password</a></p>`
 
     await this.mailerService.sendMail({
       from: "Lovely Dating App",
       to: email,
       subject: `Password reset message`,
+      html
+    })
+  }
+
+  async sendEmailVerificateLink(email: User["email"], emailVerificateToken: EmailVerificateToken["token"]) {
+    const verificateEmailRoute = "verificate-email"
+    const resetLink = `${process.env.FRONTEND_APP_URL}/${verificateEmailRoute}?token=${emailVerificateToken}`
+
+    const html = `<h2>Want to verificate your email? If you don't, please ignore this message!</h2><p>Click the link to verificate your email: <a href="${resetLink}">Verificate email</a></p>`
+
+    await this.mailerService.sendMail({
+      from: "Lovely Dating App",
+      to: email,
+      subject: `Email verificate message`,
       html
     })
   }

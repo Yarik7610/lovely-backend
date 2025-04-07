@@ -6,6 +6,7 @@ import { CreateUserDto } from "../users/dtos/create-user.dto"
 import { UsersService } from "../users/users.service"
 import { BCRYPT_CONFIG } from "./configs/bcrypt.config"
 import { ChangePasswordDto } from "./dtos/chage-password.dto"
+import { EmailVerificateDto } from "./dtos/email-verificate.dto"
 import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
 import { ResetPasswordDto } from "./dtos/reset-password.dto"
 import { SignInDto } from "./dtos/sign-in.dto"
@@ -42,7 +43,7 @@ export class AuthService {
     const { email, password } = signInDto
 
     const existingUser = await this.usersService.getUserByEmail(email)
-    if (!existingUser) throw new UnauthorizedException("Wrong email or password")
+    if (!existingUser) throw new BadRequestException("Wrong email or password")
 
     const { hashedPassword, id } = existingUser
     if (!hashedPassword) throw new BadRequestException("This email wasn't registered via email")
@@ -53,6 +54,12 @@ export class AuthService {
     const accessToken = await this.tokensService.generateAccessToken({ id })
     const refreshToken = await this.tokensService.generateRefreshToken({ id })
     await this.tokensService.storeRefreshToken(id, refreshToken, response)
+
+    if (!existingUser.emailVerified) {
+      const emailVerificateToken = await this.tokensService.generateEmailVerificateToken({ email })
+      await this.tokensService.storeEmailVerificateToken(email, emailVerificateToken)
+      await this.emailService.sendEmailVerificateLink(email, emailVerificateToken)
+    }
 
     return { accessToken }
   }
@@ -67,6 +74,22 @@ export class AuthService {
     else {
       //TODO: oauth signout
     }
+  }
+
+  async verificateEmail(emailVerificateDto: EmailVerificateDto) {
+    const { emailVerificateToken } = emailVerificateDto
+
+    const { email } = await this.tokensService.verifyEmailVerificateToken(emailVerificateToken)
+
+    const user = await this.usersService.getUserByEmail(email)
+    if (!user) throw new NotFoundException("User wasn't found")
+
+    const { id, hashedPassword, oauthId } = user
+
+    if (!hashedPassword || oauthId)
+      throw new BadRequestException("Can't verificate email because account wasn't registered with email provider")
+
+    await this.usersService.verificateUserEmail(id)
   }
 
   async changePassword(userId: User["id"], changePasswordDto: ChangePasswordDto) {

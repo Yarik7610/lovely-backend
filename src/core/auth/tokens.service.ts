@@ -3,9 +3,10 @@ import { JwtService } from "@nestjs/jwt"
 import { PasswordResetToken, RefreshToken, User } from "@prisma/client"
 import type { Response } from "express"
 import { DatabaseService } from "src/common/database/database.service"
+import { EmailVerificateToken } from "./../../../node_modules/.prisma/client/index.d"
 import { JWT_REFRESH_CONFIG } from "./configs/jwt-refresh.config"
 import { JWT_CONFIG } from "./configs/jwt.config"
-import { JwtPasswordResetPayload, JwtUserPayload } from "./types/jwt-payloads"
+import { JwtEmailVerificatePayload, JwtPasswordResetPayload, JwtUserPayload } from "./types/jwt-payloads"
 
 @Injectable()
 export class TokensService {
@@ -52,6 +53,14 @@ export class TokensService {
     })
   }
 
+  private async getPasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
+    return await this.databaseService.passwordResetToken.findUnique({
+      where: {
+        token: passwordResetToken
+      }
+    })
+  }
+
   private async updatePasswordResetToken(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
     await this.databaseService.passwordResetToken.upsert({
       where: { email },
@@ -65,18 +74,39 @@ export class TokensService {
     })
   }
 
-  private async getPasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
-    return await this.databaseService.passwordResetToken.findUnique({
+  private async deletePasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
+    return await this.databaseService.passwordResetToken.delete({
       where: {
         token: passwordResetToken
       }
     })
   }
 
-  private async deletePasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {
-    return await this.databaseService.passwordResetToken.delete({
+  private async getEmailVerificateToken(emailVerificateToken: EmailVerificateToken["token"]) {
+    return await this.databaseService.emailVerificateToken.findUnique({
       where: {
-        token: passwordResetToken
+        token: emailVerificateToken
+      }
+    })
+  }
+
+  private async updateEmailVerificateToken(email: User["email"], emailVerificateToken: EmailVerificateToken["token"]) {
+    await this.databaseService.emailVerificateToken.upsert({
+      where: { email },
+      update: {
+        token: emailVerificateToken
+      },
+      create: {
+        email,
+        token: emailVerificateToken
+      }
+    })
+  }
+
+  private async deleteEmailVerificateToken(emailVerificateToken: EmailVerificateToken["token"]) {
+    return await this.databaseService.emailVerificateToken.delete({
+      where: {
+        token: emailVerificateToken
       }
     })
   }
@@ -94,8 +124,16 @@ export class TokensService {
     })
   }
 
+  async generateEmailVerificateToken(emailVerificatePayload: JwtEmailVerificatePayload) {
+    return await this.jwtService.signAsync(emailVerificatePayload, JWT_CONFIG)
+  }
+
   async generatePasswordResetToken(jwtResetPasswordPayload: JwtPasswordResetPayload) {
     return await this.jwtService.signAsync(jwtResetPasswordPayload, JWT_CONFIG)
+  }
+
+  async storeEmailVerificateToken(email: User["email"], emailVerificateToken: EmailVerificateToken["email"]) {
+    await this.updateEmailVerificateToken(email, emailVerificateToken)
   }
 
   async storeRefreshToken(id: User["id"], refreshToken: string, response: Response) {
@@ -141,6 +179,25 @@ export class TokensService {
     await this.storeRefreshToken(id, refreshToken, response)
 
     return { accessToken }
+  }
+
+  async verifyEmailVerificateToken(emailVerificateToken: EmailVerificateToken["token"]) {
+    const existingEmailVerificateToken = await this.getEmailVerificateToken(emailVerificateToken)
+    if (!existingEmailVerificateToken) throw new BadRequestException("Didn't find such email verifcate token")
+
+    let emailVerificatePayload: JwtEmailVerificatePayload
+    try {
+      emailVerificatePayload = await this.jwtService.verifyAsync(emailVerificateToken, {
+        secret: JWT_CONFIG.secret
+      })
+      return emailVerificatePayload
+    } catch {
+      throw new BadRequestException(
+        "Email verificate token is invalid or has expired. Sign in or change email one more time to get a new message"
+      )
+    } finally {
+      this.deleteEmailVerificateToken(emailVerificateToken)
+    }
   }
 
   async verifyPasswordResetToken(passwordResetToken: PasswordResetToken["token"]) {

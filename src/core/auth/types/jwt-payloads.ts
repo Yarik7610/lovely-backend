@@ -5,3 +5,7 @@ export type JwtUserPayload = {
 export type JwtPasswordResetPayload = {
   email: string
 }
+
+export type JwtEmailVerificatePayload = {
+  email: string
+}
