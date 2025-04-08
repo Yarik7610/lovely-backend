@@ -4,14 +4,16 @@ import * as bcrypt from "bcrypt"
 import type { Response } from "express"
 import { CreateUserDto } from "../users/dtos/create-user.dto"
 import { UsersService } from "../users/users.service"
-import { BCRYPT_CONFIG } from "./configs/bcrypt.config"
-import { ChangePasswordDto } from "./dtos/chage-password.dto"
-import { ChangeEmailDto } from "./dtos/change-email.dto"
-import { EmailVerificateDto } from "./dtos/email-verificate.dto"
-import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
-import { ResetPasswordDto } from "./dtos/reset-password.dto"
-import { SignInDto } from "./dtos/sign-in.dto"
-import { SignUpDto } from "./dtos/sign-up.dto"
+import { BCRYPT_CONFIG } from "./configs"
+import {
+  ChangeEmailDto,
+  ChangePasswordDto,
+  EmailVerificateDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  SignInDto,
+  SignUpDto
+} from "./dtos"
 import { EmailService } from "./email.service"
 import { TokensService } from "./tokens.service"
 

@@ -1,18 +1,19 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common"
 import { RefreshToken } from "@prisma/client"
 import type { Request, Response } from "express"
-import { Public } from "src/common/decorators/public.decorator"
-import { User } from "src/common/decorators/user.decorator"
+import { Public, User } from "src/common/decorators"
 import { AuthService } from "./auth.service"
-import { ChangePasswordDto } from "./dtos/chage-password.dto"
-import { ChangeEmailDto } from "./dtos/change-email.dto"
-import { EmailVerificateDto } from "./dtos/email-verificate.dto"
-import { ForgotPasswordDto } from "./dtos/forgot-password.dto"
-import { ResetPasswordDto } from "./dtos/reset-password.dto"
-import { SignInDto } from "./dtos/sign-in.dto"
-import { SignUpDto } from "./dtos/sign-up.dto"
+import {
+  ChangeEmailDto,
+  ChangePasswordDto,
+  EmailVerificateDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  SignInDto,
+  SignUpDto
+} from "./dtos"
 import { TokensService } from "./tokens.service"
-import { JwtUserPayload } from "./types/jwt-payloads"
+import { JwtUserPayload } from "./types"
 
 @Controller("auth")
 export class AuthController {

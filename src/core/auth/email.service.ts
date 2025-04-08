@@ -7,8 +7,8 @@ export class EmailService {
   constructor(private readonly mailerService: MailerService) {}
 
   async sendPasswordResetLink(email: User["email"], passwordResetToken: PasswordResetToken["token"]) {
-    const resetPasswordRoute = "reset-password"
-    const resetLink = `${process.env.FRONTEND_APP_URL}/${resetPasswordRoute}?token=${passwordResetToken}`
+    const RESET_PASSWORD_ROUTE = "reset-password"
+    const resetLink = `${process.env.FRONTEND_APP_URL}/${RESET_PASSWORD_ROUTE}?token=${passwordResetToken}`
 
     const html = `<h2>Forgot your password? If you didn't forget your password, please ignore this message!</h2><p>Click the link to reset your password: <a href="${resetLink}">Reset password</a></p>`
 
@@ -21,8 +21,8 @@ export class EmailService {
   }
 
   async sendEmailVerificateLink(email: User["email"], emailVerificateToken: EmailVerificateToken["token"]) {
-    const verificateEmailRoute = "verificate-email"
-    const resetLink = `${process.env.FRONTEND_APP_URL}/${verificateEmailRoute}?token=${emailVerificateToken}`
+    const VERIFICATE_EMAIL_ROUTE = "verificate-email"
+    const resetLink = `${process.env.FRONTEND_APP_URL}/${VERIFICATE_EMAIL_ROUTE}?token=${emailVerificateToken}`
 
     const html = `<h2>Want to verificate your email? If you don't, please ignore this message!</h2><p>Click the link to verificate your email: <a href="${resetLink}">Verificate email</a></p>`
 
