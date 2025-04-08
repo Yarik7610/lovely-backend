@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, NotFoundException, UnauthorizedExcepti
 import { User } from "@prisma/client"
 import * as bcrypt from "bcrypt"
 import type { Response } from "express"
-import { CreateUserDto } from "../users/dtos/create-user.dto"
+import { CreateUserDto } from "../users/dtos"
 import { UsersService } from "../users/users.service"
 import { BCRYPT_CONFIG } from "./configs"
 import {

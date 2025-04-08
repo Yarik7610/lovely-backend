@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common"
 import { User } from "@prisma/client"
 import { DatabaseService } from "src/common/database/database.service"
-import { CreateUserDto } from "./dtos/create-user.dto"
+import { CreateUserDto } from "./dtos"
 
 @Injectable()
 export class UsersService {
