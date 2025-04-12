@@ -14,8 +14,7 @@ import {
   SignInDto,
   SignUpDto
 } from "./dtos"
-import { EmailService } from "./email.service"
-import { TokensService } from "./tokens.service"
+import { EmailService, TokensService } from "./services"
 
 @Injectable()
 export class AuthService {

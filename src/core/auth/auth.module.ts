@@ -6,9 +6,8 @@ import { UsersModule } from "../users/users.module"
 import { AuthController } from "./auth.controller"
 import { AuthService } from "./auth.service"
 import { EMAIL_SENDER_CONFIG } from "./configs"
-import { EmailService } from "./email.service"
-import { AuthGuard } from "./guards/auth.guard"
-import { TokensService } from "./tokens.service"
+import { AuthGuard } from "./guards"
+import { EmailService, GoogleOAuthService, TokensService } from "./services"
 
 @Module({
   controllers: [AuthController],
@@ -16,6 +15,7 @@ import { TokensService } from "./tokens.service"
     AuthService,
     TokensService,
     EmailService,
+    GoogleOAuthService,
     {
       provide: APP_GUARD,
       useClass: AuthGuard

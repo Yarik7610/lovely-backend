@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, Res } from "@nestjs/common"
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, Req, Res } from "@nestjs/common"
 import { RefreshToken } from "@prisma/client"
 import type { Request, Response } from "express"
 import { Public, User } from "src/common/decorators"
@@ -12,14 +12,16 @@ import {
   SignInDto,
   SignUpDto
 } from "./dtos"
-import { TokensService } from "./tokens.service"
+import { GoogleOAuthService } from "./services"
+import { TokensService } from "./services/tokens.service"
 import { JwtUserPayload } from "./types"
 
 @Controller("auth")
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly tokensService: TokensService
+    private readonly tokensService: TokensService,
+    private readonly googleOAuthService: GoogleOAuthService
   ) {}
 
   @Post("sign-up")
@@ -85,5 +87,17 @@ export class AuthController {
     const { id } = user
 
     return this.authService.signOut(id, response)
+  }
+
+  @Get("google/auth-url")
+  @Public()
+  getGoogleAuthUrl() {
+    return this.googleOAuthService.getGoogleAuthUrl()
+  }
+
+  @Get("google/callback")
+  @Public()
+  handleGoogleCallback(@Query("code") code: string | undefined) {
+    return this.googleOAuthService.handleGoogleCallback(code)
   }
 }

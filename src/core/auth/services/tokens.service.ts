@@ -3,9 +3,9 @@ import { JwtService } from "@nestjs/jwt"
 import { EmailVerificateToken, PasswordResetToken, RefreshToken, User } from "@prisma/client"
 import type { Response } from "express"
 import { DatabaseService } from "src/common/database/database.service"
-import { JWT_REFRESH_CONFIG } from "./configs/jwt-refresh.config"
-import { JWT_CONFIG } from "./configs/jwt.config"
-import { JwtEmailVerificatePayload, JwtPasswordResetPayload, JwtUserPayload } from "./types/jwt-payloads"
+import { JWT_REFRESH_CONFIG } from "../configs/jwt-refresh.config"
+import { JWT_CONFIG } from "../configs/jwt.config"
+import { JwtEmailVerificatePayload, JwtPasswordResetPayload, JwtUserPayload } from "../types/jwt-payloads"
 
 @Injectable()
 export class TokensService {
@@ -195,7 +195,7 @@ export class TokensService {
         "Email verificate token is invalid or has expired. Sign in or change email one more time to get a new message"
       )
     } finally {
-      this.deleteEmailVerificateToken(emailVerificateToken)
+      await this.deleteEmailVerificateToken(emailVerificateToken)
     }
   }
 
@@ -214,7 +214,7 @@ export class TokensService {
         "Password reset token is invalid or has expired. Request new password one more time"
       )
     } finally {
-      this.deletePasswordResetToken(passwordResetToken)
+      await this.deletePasswordResetToken(passwordResetToken)
     }
   }
 }
