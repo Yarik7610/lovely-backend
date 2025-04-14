@@ -9,9 +9,9 @@ import {
   EmailVerificateDto,
   ForgotPasswordDto,
   ResetPasswordDto,
-  SignInDto,
   SignUpDto
 } from "./dtos"
+import { SignInDto } from "./dtos/sign-in.dto"
 import { GoogleOAuthService } from "./services"
 import { TokensService } from "./services/tokens.service"
 import { JwtUserPayload } from "./types"
@@ -97,7 +97,7 @@ export class AuthController {
 
   @Get("google/callback")
   @Public()
-  handleGoogleCallback(@Query("code") code: string | undefined) {
-    return this.googleOAuthService.handleGoogleCallback(code)
+  async handleGoogleCallback(@Query("code") code: string | undefined, @Res({ passthrough: true }) response: Response) {
+    return this.googleOAuthService.handleGoogleCallback(code, response)
   }
 }

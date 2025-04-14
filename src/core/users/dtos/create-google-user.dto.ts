@@ -1,9 +1,10 @@
 import { IsEmail, MaxLength } from "class-validator"
 
-export class CreateUserDto {
+export class CreateGoogleUserDto {
   @IsEmail()
   @MaxLength(50)
   email: string
 
-  hashedPassword: string
+  oauthId: string
+  name: string
 }

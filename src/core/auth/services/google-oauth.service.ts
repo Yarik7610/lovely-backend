@@ -1,12 +1,20 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
+import type { Response } from "express"
+import { CreateGoogleUserDto } from "src/core/users/dtos"
+import { UsersService } from "src/core/users/users.service"
 import { GOOGLE_AUTH_CONFIG } from "../configs"
 import { GoogleTokensResponse, GoogleUserInfo, GoogleUserResponse } from "../types"
+import { TokensService } from "./tokens.service"
 
 @Injectable()
 export class GoogleOAuthService {
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly tokensService: TokensService
+  ) {}
+
   private async exchangeCodeForTokens(code: string): Promise<{
-    accessToken: GoogleTokensResponse["access_token"]
-    refreshToken?: GoogleTokensResponse["refresh_token"]
+    googleAccessToken: GoogleTokensResponse["access_token"]
   }> {
     const GOOGLE_TOKENS_URL = "https://oauth2.googleapis.com/token"
     const { client_id, client_secret, redirect_uri } = GOOGLE_AUTH_CONFIG
@@ -28,9 +36,9 @@ export class GoogleOAuthService {
 
       if (!response.ok) throw new BadRequestException(`Failed to fetch google user info`)
 
-      const { access_token, refresh_token } = (await response.json()) as GoogleTokensResponse
+      const { access_token } = (await response.json()) as GoogleTokensResponse
 
-      return { accessToken: access_token, refreshToken: refresh_token }
+      return { googleAccessToken: access_token }
     } catch {
       throw new BadRequestException(`Failed to exchange code for tokens`)
     }
@@ -78,8 +86,6 @@ export class GoogleOAuthService {
       client_id,
       response_type: "code",
       access_type: "offline",
-      //TODO: always returns refresh_token, remove on prod
-      prompt: "consent",
       scope: dataToRetrieve.join(" ")
     }
 
@@ -90,17 +96,30 @@ export class GoogleOAuthService {
     return { googleAuthUrl: `${GOOGLE_AUTH_ROUTE}?${optionsQueryString}` }
   }
 
-  async handleGoogleCallback(code: string | undefined) {
+  async handleGoogleCallback(code: string | undefined, response: Response) {
     if (!code) throw new BadRequestException("Didn't provide query string code param")
 
-    const { accessToken, refreshToken } = await this.exchangeCodeForTokens(code)
+    const { googleAccessToken } = await this.exchangeCodeForTokens(code)
+    const userInfo = await this.getGoogleUserInfo(googleAccessToken)
 
-    const userInfo = await this.getGoogleUserInfo(accessToken)
+    const { email, oauthId, name } = userInfo
 
-    return {
-      ...userInfo,
-      accessToken,
-      refreshToken
+    const user = await this.usersService.getUserByEmail(email)
+    if (user) throw new BadRequestException("User with such email already exists")
+
+    const createGoogleUserDto: CreateGoogleUserDto = {
+      email,
+      name,
+      oauthId
     }
+
+    const newUser = await this.usersService.createGoogleUser(createGoogleUserDto)
+    const { id } = newUser
+
+    const accessToken = await this.tokensService.generateAccessToken({ id })
+    const refreshToken = await this.tokensService.generateRefreshToken({ id })
+    await this.tokensService.storeRefreshToken(id, refreshToken, response)
+
+    return { user: newUser, accessToken }
   }
 }

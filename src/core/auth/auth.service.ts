@@ -38,6 +38,9 @@ export class AuthService {
       hashedPassword
     }
 
+    const existingUser = await this.usersService.getUserByEmail(createUserDto.email)
+    if (existingUser) throw new BadRequestException("User with such email already exists")
+
     return await this.usersService.createUser(createUserDto)
   }
 
