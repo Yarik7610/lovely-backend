@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from "@nestjs/common"
+import { User } from "@prisma/client"
 import type { Response } from "express"
 import { CreateGoogleUserDto } from "src/core/users/dtos"
 import { UsersService } from "src/core/users/users.service"
@@ -104,22 +105,26 @@ export class GoogleOAuthService {
 
     const { email, oauthId, name } = userInfo
 
-    const user = await this.usersService.getUserByEmail(email)
-    if (user) throw new BadRequestException("User with such email already exists")
-
     const createGoogleUserDto: CreateGoogleUserDto = {
       email,
       name,
       oauthId
     }
 
-    const newUser = await this.usersService.createGoogleUser(createGoogleUserDto)
-    const { id } = newUser
+    let user: Omit<User, "hashedPassword"> | null = await this.usersService.getUserByEmail(email)
+    if (!user) user = await this.usersService.createGoogleUser(createGoogleUserDto)
+    else {
+      if (!user.oauthId) throw new BadRequestException("This email is taken by email provider")
+      else if (user.oauthId && user.oauthProvider !== "google")
+        throw new BadRequestException("This email is taken by another oauth provider")
+    }
+
+    const { id } = user
 
     const accessToken = await this.tokensService.generateAccessToken({ id })
     const refreshToken = await this.tokensService.generateRefreshToken({ id })
     await this.tokensService.storeRefreshToken(id, refreshToken, response)
 
-    return { user: newUser, accessToken }
+    return { user, accessToken }
   }
 }
