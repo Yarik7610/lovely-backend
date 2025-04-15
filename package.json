@@ -17,6 +17,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
+    "db:deploy": "npx prisma migrate deploy",
+    "dev": "yarn db:deploy && yarn start:dev",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
