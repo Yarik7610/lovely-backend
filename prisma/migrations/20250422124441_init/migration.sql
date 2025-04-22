@@ -50,6 +50,7 @@ CREATE TABLE "User" (
     "gender" "Gender",
     "city" TEXT,
     "bio" TEXT,
+    "avatarUrl" TEXT,
     "photoUrls" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,

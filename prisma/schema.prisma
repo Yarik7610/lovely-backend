@@ -62,6 +62,7 @@ model User {
   city           String?
   bio            String?
   interests      Interest[]    @relation("usersInterests")
+  avatarUrl      String?
   photoUrls      Json?
   sentSwipes     Swipe[]       @relation("swiper")
   receivedSwipes Swipe[]       @relation("swiped")
