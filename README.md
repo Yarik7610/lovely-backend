@@ -35,11 +35,11 @@ GOOGLE_CLIENT_SECRET=""
 GOOGLE_REDIRECT_URI=""
 ```
 
+## Compile and run the project
+
 ```bash
 $ yarn install
 ```
-
-## Compile and run the project
 
 ```bash
 # development
